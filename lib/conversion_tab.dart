@@ -5,29 +5,76 @@ import 'dart:convert';
 
 class ConversionTab extends StatefulWidget {
   @override
-  _ConversionTabState createState() => _ConversionTabState();
+  ConversionTabState createState() => ConversionTabState();
 }
 
-class _ConversionTabState extends State<ConversionTab> {
+class ConversionTabState extends State<ConversionTab>/* with AutomaticKeepAliveClientMixin */{
   TextEditingController meterController = TextEditingController();
-  double meterValue = 0.0;
+  double meterValue = 1.0;
   Map<String, double> conversionUnits = {};
 
   @override
   void initState() {
     super.initState();
     _loadConversionUnits();
+    _loadMeterValue(); 
+  }
+
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _loadConversionUnits();
+	print("didChangeDependencies\n");
+  }
+
+  @override
+  void didUpdateWidget(covariant ConversionTab oldWidget) {
+	  super.didUpdateWidget(oldWidget);
+	  _loadConversionUnits();
+	print("didUpdateWidget\n");
+  }
+
+
+
+  void reloadConversionUnits() {
+    _loadConversionUnits();
   }
 
   Future<void> _loadConversionUnits() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     String? unitsJson = prefs.getString('conversionUnits');
+	print("_loadConversionUnits");
     if (unitsJson != null) {
       setState(() {
         conversionUnits = Map<String, double>.from(json.decode(unitsJson));
+	print("setState conversionUnits");
       });
     }
   }
+
+
+
+
+  Future<void> _loadMeterValue() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String? savedValue = prefs.getString('meterValue');
+    if (savedValue != null) {
+      setState(() {
+        meterController.text = savedValue;
+        meterValue = double.tryParse(savedValue) ?? 0.0;
+      });
+    }
+  }
+
+
+  Future<void> _saveMeterValue(String value) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.setString('meterValue', value);
+  }
+  
+
+
 
   @override
   Widget build(BuildContext context) {
@@ -48,6 +95,7 @@ class _ConversionTabState extends State<ConversionTab> {
                 setState(() {
                   meterValue = double.tryParse(value) ?? 0.0;
                 });
+		_saveMeterValue(value); 
               },
             ),
             SizedBox(height: 20),
@@ -73,5 +121,8 @@ class _ConversionTabState extends State<ConversionTab> {
       ),
     );
   }
+
+ // @override
+ // bool get wantKeepAlive => true; // Indique que vous voulez conserver l'état
 }
 

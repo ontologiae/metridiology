@@ -1,21 +1,68 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:convert';
 
 class ConfigurationTab extends StatefulWidget {
   @override
   _ConfigurationTabState createState() => _ConfigurationTabState();
 }
 
-class _ConfigurationTabState extends State<ConfigurationTab> {
+class _ConfigurationTabState extends State<ConfigurationTab> with AutomaticKeepAliveClientMixin  {
+  TextEditingController userNameController = TextEditingController();
+  TextEditingController laserMeterModelController = TextEditingController();
+  
   String userName = '';
   String laserMeterModel = '';
   Map<String, double> conversionUnits = {
-    'Coudée': 0.5,
-    'Pied': 0.3048,
+    'Coudée GP': 0.5236,
+    '[Quine]Pied': 0.3236,
     // Ajoutez d'autres unités par défaut ici
   };
 
   TextEditingController unitNameController = TextEditingController();
   TextEditingController unitValueController = TextEditingController();
+
+ @override
+  void initState() {
+    super.initState();
+    _loadConfiguration();
+    setState(() {
+	_loadUserLasermetre();
+      });
+
+  }
+
+
+  Future<void> _loadUserLasermetre() async {
+      setState(() {
+	userNameController.text = userName;
+	laserMeterModelController.text = laserMeterModel;
+      });
+  }
+
+  Future<void> _saveConfiguration() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    prefs.setString('userName', userName);
+    prefs.setString('laserMeterModel', laserMeterModel);
+    prefs.setString('conversionUnits', json.encode(conversionUnits));
+  }
+
+  Future<void> _saveConversionUnits() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    prefs.setString('conversionUnits', json.encode(conversionUnits));
+  }
+
+  Future<void> _loadConfiguration() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    setState(() {
+      userName = prefs.getString('userName') ?? '';
+      laserMeterModel = prefs.getString('laserMeterModel') ?? '';
+      String? unitsJson = prefs.getString('conversionUnits');
+      if (unitsJson != null) {
+        conversionUnits = Map<String, double>.from(json.decode(unitsJson));
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -30,6 +77,7 @@ class _ConfigurationTabState extends State<ConfigurationTab> {
           children: [
             Text('Informations Utilisateur', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             TextField(
+              controller: userNameController,
               decoration: InputDecoration(labelText: 'Nom de l\'auteur'),
               onChanged: (value) {
                 setState(() {
@@ -39,6 +87,7 @@ class _ConfigurationTabState extends State<ConfigurationTab> {
             ),
             TextField(
               decoration: InputDecoration(labelText: 'Modèle de lasermètre'),
+	      controller: laserMeterModelController,
               onChanged: (value) {
                 setState(() {
                   laserMeterModel = value;
@@ -68,9 +117,14 @@ class _ConfigurationTabState extends State<ConfigurationTab> {
                   icon: Icon(Icons.add),
                   onPressed: () {
                     setState(() {
-                      conversionUnits[unitNameController.text] = double.tryParse(unitValueController.text) ?? 0.0;
+			// On vérifie que le nom et la valeur ont bien été renseigné
+			double parsedConversionValue = double.tryParse(unitValueController.text) ?? 0.0;
+			if (unitNameController.text.length > 0 && parsedConversionValue > 0) {
+                      		conversionUnits[unitNameController.text] = parsedConversionValue;
+			}
                       unitNameController.clear();
                       unitValueController.clear();
+			_saveConversionUnits();
                     });
                   },
                 ),
@@ -90,6 +144,7 @@ class _ConfigurationTabState extends State<ConfigurationTab> {
                       onPressed: () {
                         setState(() {
                           conversionUnits.remove(unitName);
+			  _saveConversionUnits();
                         });
                       },
                     ),
@@ -102,5 +157,8 @@ class _ConfigurationTabState extends State<ConfigurationTab> {
       ),
     );
   }
+
+  @override
+  bool get wantKeepAlive => true; // Indique que vous voulez conserver l'état
 }
 
