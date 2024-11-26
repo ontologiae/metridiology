@@ -101,75 +101,74 @@ class ConversionTabState extends State<ConversionTab>/* with AutomaticKeepAliveC
 @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text('Conversion de Mesures'),
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            TextField(
-              controller: meterController,
-              decoration: InputDecoration(labelText: 'Entrez la mesure en mètres'),
-              keyboardType: TextInputType.number,
-              onChanged: (value) {
-                meterValue = double.tryParse(value) ?? 0.0;
-              },
-            ),
-            SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: () {
-                setState(() {
-                  _updateConversionHistory();
-                });
-              },
-              child: Text('Convertir et Ajouter à l\'Historique'),
-            ),
-						SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: () {
-                setState(() {
-                  deleteConversionHistory();
-                });
-              },
-              child: Text('Supprimer l\'Historique'),
-            ),
-            SizedBox(height: 20),
-            Text(
-              'Historique des Conversions :',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            Expanded(
-              child: SingleChildScrollView(
-                scrollDirection: Axis.vertical,
-                child: SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: DataTable(
-                    columns: [
-                      DataColumn(label: Text('Mètres')),
-                      ...conversionUnits.keys
-                          .map((unit) => DataColumn(label: Text(unit)))
-                          .toList(),
-                    ],
-                    rows: conversionHistory.map((conversion) {
-                      return DataRow(
-                        cells: [
-                          DataCell(Text(conversion['Mètres']?.toStringAsFixed(2) ?? '')),
-                          ...conversionUnits.keys.map((unit) {
-                            return DataCell(Text(conversion[unit]?.toStringAsFixed(2) ?? ''));
-                          }).toList(),
-                        ],
-                      );
+  appBar: AppBar(
+    title: Text('Conversion de Mesures'),
+  ),
+  body: SingleChildScrollView(
+    child: Padding(
+      padding: const EdgeInsets.all(16.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          TextField(
+            controller: meterController,
+            decoration: InputDecoration(labelText: 'Entrez la mesure en mètres'),
+            keyboardType: TextInputType.number,
+            onChanged: (value) {
+              meterValue = double.tryParse(value) ?? 0.0;
+            },
+          ),
+          SizedBox(height: 20),
+          ElevatedButton(
+            onPressed: () {
+              setState(() {
+                _updateConversionHistory();
+              });
+            },
+            child: Text('Convertir et Ajouter à l\'Historique'),
+          ),
+          SizedBox(height: 20),
+          ElevatedButton(
+            onPressed: () {
+              setState(() {
+                deleteConversionHistory();
+              });
+            },
+            child: Text('Supprimer l\'Historique'),
+          ),
+          SizedBox(height: 20),
+          Text(
+            'Historique des Conversions :',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          ),
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: DataTable(
+              columns: [
+                DataColumn(label: Text('Mètres')),
+                ...conversionUnits.keys
+                    .map((unit) => DataColumn(label: Text(unit)))
+                    .toList(),
+              ],
+              rows: conversionHistory.map((conversion) {
+                return DataRow(
+                  cells: [
+                    DataCell(Text(conversion['Mètres']?.toStringAsFixed(2) ?? '')),
+                    ...conversionUnits.keys.map((unit) {
+                      return DataCell(Text(conversion[unit]?.toStringAsFixed(2) ?? ''));
                     }).toList(),
-                  ),
-                ),
-              ),
+                  ],
+                );
+              }).toList(),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
-    );
+    ),
+  ),
+);
+
+
   }
 
   void _updateConversionHistory() {
