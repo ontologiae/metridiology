@@ -25,24 +25,19 @@ class _ConfigurationTabState extends State<ConfigurationTab> /*with AutomaticKee
  @override
   void initState() {
     super.initState();
-    _loadConfiguration();
-    setState(() {
-    _loadConfiguration();
-
-	_loadUserLasermetre();
-      });
+    _loadUserLasermetre();
 
   }
 
 
   Future<void> _loadUserLasermetre() async {
-      setState(() {
-	_loadConfiguration();
-	print("_loadUserLasermetre:"+userName);
-	userNameController.text = userName;
-	laserMeterModelController.text = laserMeterModel;
-	print(laserMeterModelController.text);
-      });
+	await _loadConfiguration();
+	setState(() {
+			print("_loadUserLasermetre:"+userName);
+			userNameController.text = userName;
+			laserMeterModelController.text = laserMeterModel;
+			print(laserMeterModelController.text);
+	});
   }
 
   Future<void> _saveConfiguration() async {

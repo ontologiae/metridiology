@@ -12,6 +12,7 @@ class ConversionTabState extends State<ConversionTab>/* with AutomaticKeepAliveC
   TextEditingController meterController = TextEditingController();
   double meterValue = 1.0;
   Map<String, double> conversionUnits = {};
+  List<Map<String, double>> conversionHistory = [];
 
   @override
   void initState() {
@@ -95,7 +96,8 @@ class ConversionTabState extends State<ConversionTab>/* with AutomaticKeepAliveC
                 setState(() {
                   meterValue = double.tryParse(value) ?? 0.0;
                 });
-		_saveMeterValue(value); 
+		_saveMeterValue(value);
+		_updateConversionHistory(); 
               },
             ),
             SizedBox(height: 20),
@@ -103,24 +105,44 @@ class ConversionTabState extends State<ConversionTab>/* with AutomaticKeepAliveC
               'Conversions :',
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
-            Expanded(
-              child: ListView.builder(
-                itemCount: conversionUnits.keys.length,
-                itemBuilder: (context, index) {
-                  String unitName = conversionUnits.keys.elementAt(index);
-                  double conversionFactor = conversionUnits[unitName]!;
-                  double convertedValue = meterValue * conversionFactor;
-                  return ListTile(
-                    title: Text('$unitName: $convertedValue'),
-                  );
-                },
+         Expanded(
+              child: SingleChildScrollView(
+                scrollDirection: Axis.vertical,
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: DataTable(
+                    columns: conversionUnits.keys
+                        .map((unit) => DataColumn(label: Text(unit)))
+                        .toList(),
+                    rows: conversionHistory.map((conversion) {
+                      return DataRow(
+                        cells: conversionUnits.keys.map((unit) {
+                          return DataCell(Text(conversion[unit]?.toStringAsFixed(2) ?? ''));
+                        }).toList(),
+                      );
+                    }).toList(),
+                  ),
+                ),
               ),
             ),
+
+
+
           ],
         ),
       ),
     );
   }
+
+
+             
+  void _updateConversionHistory() {
+    if (meterValue > 0.0) {
+      conversionHistory.add(
+        conversionUnits.map((unit, factor) => MapEntry(unit, meterValue * factor)),
+      );
+    }
+  } 
 
  // @override
  // bool get wantKeepAlive => true; // Indique que vous voulez conserver l'état
