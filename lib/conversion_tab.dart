@@ -77,7 +77,7 @@ class ConversionTabState extends State<ConversionTab>/* with AutomaticKeepAliveC
 
 
 
-  @override
+@override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
@@ -93,56 +93,63 @@ class ConversionTabState extends State<ConversionTab>/* with AutomaticKeepAliveC
               decoration: InputDecoration(labelText: 'Entrez la mesure en mètres'),
               keyboardType: TextInputType.number,
               onChanged: (value) {
-                setState(() {
-                  meterValue = double.tryParse(value) ?? 0.0;
-                });
-		_saveMeterValue(value);
-		_updateConversionHistory(); 
+                meterValue = double.tryParse(value) ?? 0.0;
               },
             ),
             SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: () {
+                setState(() {
+                  _updateConversionHistory();
+                });
+              },
+              child: Text('Convertir et Ajouter à l\'Historique'),
+            ),
+            SizedBox(height: 20),
             Text(
-              'Conversions :',
+              'Historique des Conversions :',
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
-         Expanded(
+            Expanded(
               child: SingleChildScrollView(
                 scrollDirection: Axis.vertical,
                 child: SingleChildScrollView(
                   scrollDirection: Axis.horizontal,
                   child: DataTable(
-                    columns: conversionUnits.keys
-                        .map((unit) => DataColumn(label: Text(unit)))
-                        .toList(),
+                    columns: [
+                      DataColumn(label: Text('Mètres')),
+                      ...conversionUnits.keys
+                          .map((unit) => DataColumn(label: Text(unit)))
+                          .toList(),
+                    ],
                     rows: conversionHistory.map((conversion) {
                       return DataRow(
-                        cells: conversionUnits.keys.map((unit) {
-                          return DataCell(Text(conversion[unit]?.toStringAsFixed(2) ?? ''));
-                        }).toList(),
+                        cells: [
+                          DataCell(Text(conversion['Mètres']?.toStringAsFixed(2) ?? '')),
+                          ...conversionUnits.keys.map((unit) {
+                            return DataCell(Text(conversion[unit]?.toStringAsFixed(2) ?? ''));
+                          }).toList(),
+                        ],
                       );
                     }).toList(),
                   ),
                 ),
               ),
             ),
-
-
-
           ],
         ),
       ),
     );
   }
 
-
-             
   void _updateConversionHistory() {
     if (meterValue > 0.0) {
-      conversionHistory.add(
-        conversionUnits.map((unit, factor) => MapEntry(unit, meterValue * factor)),
-      );
+      Map<String, double> conversion = {'Mètres': meterValue};
+      conversion.addAll(conversionUnits.map((unit, factor) => MapEntry(unit, meterValue * factor)));
+      conversionHistory.add(conversion);
     }
-  } 
+  }
+
 
  // @override
  // bool get wantKeepAlive => true; // Indique que vous voulez conserver l'état
