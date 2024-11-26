@@ -7,7 +7,7 @@ class ConfigurationTab extends StatefulWidget {
   _ConfigurationTabState createState() => _ConfigurationTabState();
 }
 
-class _ConfigurationTabState extends State<ConfigurationTab> with AutomaticKeepAliveClientMixin  {
+class _ConfigurationTabState extends State<ConfigurationTab> /*with AutomaticKeepAliveClientMixin*/  {
   TextEditingController userNameController = TextEditingController();
   TextEditingController laserMeterModelController = TextEditingController();
   
@@ -27,6 +27,8 @@ class _ConfigurationTabState extends State<ConfigurationTab> with AutomaticKeepA
     super.initState();
     _loadConfiguration();
     setState(() {
+    _loadConfiguration();
+
 	_loadUserLasermetre();
       });
 
@@ -35,8 +37,11 @@ class _ConfigurationTabState extends State<ConfigurationTab> with AutomaticKeepA
 
   Future<void> _loadUserLasermetre() async {
       setState(() {
+	_loadConfiguration();
+	print("_loadUserLasermetre:"+userName);
 	userNameController.text = userName;
 	laserMeterModelController.text = laserMeterModel;
+	print(laserMeterModelController.text);
       });
   }
 
@@ -47,17 +52,14 @@ class _ConfigurationTabState extends State<ConfigurationTab> with AutomaticKeepA
     prefs.setString('conversionUnits', json.encode(conversionUnits));
   }
 
-  Future<void> _saveConversionUnits() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    prefs.setString('conversionUnits', json.encode(conversionUnits));
-  }
 
   Future<void> _loadConfiguration() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     setState(() {
-      userName = prefs.getString('userName') ?? '';
-      laserMeterModel = prefs.getString('laserMeterModel') ?? '';
+      userName = prefs.getString('userName') ?? 'Unknown';
+      laserMeterModel = prefs.getString('laserMeterModel') ?? 'Unknown';
       String? unitsJson = prefs.getString('conversionUnits');
+	print(userName);
       if (unitsJson != null) {
         conversionUnits = Map<String, double>.from(json.decode(unitsJson));
       }
@@ -124,7 +126,7 @@ class _ConfigurationTabState extends State<ConfigurationTab> with AutomaticKeepA
 			}
                       unitNameController.clear();
                       unitValueController.clear();
-			_saveConversionUnits();
+			_saveConfiguration();
                     });
                   },
                 ),
@@ -144,7 +146,7 @@ class _ConfigurationTabState extends State<ConfigurationTab> with AutomaticKeepA
                       onPressed: () {
                         setState(() {
                           conversionUnits.remove(unitName);
-			  _saveConversionUnits();
+			  _saveConfiguration();
                         });
                       },
                     ),
@@ -158,7 +160,5 @@ class _ConfigurationTabState extends State<ConfigurationTab> with AutomaticKeepA
     );
   }
 
-  @override
-  bool get wantKeepAlive => true; // Indique que vous voulez conserver l'état
 }
 
