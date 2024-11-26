@@ -43,16 +43,33 @@ class ConversionTabState extends State<ConversionTab>/* with AutomaticKeepAliveC
   }
 
   Future<void> _loadConversionUnits() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    String? unitsJson = prefs.getString('conversionUnits');
-	print("_loadConversionUnits");
-    if (unitsJson != null) {
-      setState(() {
-        conversionUnits = Map<String, double>.from(json.decode(unitsJson));
-	print("setState conversionUnits");
-      });
-    }
-  }
+	  SharedPreferences prefs = await SharedPreferences.getInstance();
+	  String? unitsJson = prefs.getString('conversionUnits');
+	  String? histoMetreJson = prefs.getString('historiqMetre');
+	  print("_loadConversionUnits:"+(histoMetreJson ?? '{}')+";"+(unitsJson ?? '{}'));
+	  if (unitsJson != null) {
+		  setState(() {
+				  conversionUnits = Map<String, double>.from(json.decode(unitsJson));
+					conversionUnits['Mètres'] = 1; // Pour avoir la colonne mètre
+				  });
+	  }
+	  if (histoMetreJson != null) {
+		  setState(() {
+				  List<double> historiqMetre =  List<double>.from(json.decode(histoMetreJson));
+					Map<String, double> conversion = new Map<String, double>();// {'Mètres': meterValue};
+					conversionHistory = [];
+					print(historiqMetre);
+          historiqMetre.forEach( (metre) {
+													conversion.addAll(conversionUnits.map((unit, factor) => MapEntry(unit, metre * factor)));
+													
+													conversionHistory.add(Map.from(conversion)); // Map.from( pour forcer le clone, sinon on copie le pointeur, et donc on a n fois le dernier...
+													print(metre);print(conversion);print(conversionHistory);
+													});
+							print("conversionHistory:");
+							print( conversionHistory);
+					});//end state
+		}
+	}
 
 
 
@@ -72,6 +89,10 @@ class ConversionTabState extends State<ConversionTab>/* with AutomaticKeepAliveC
   Future<void> _saveMeterValue(String value) async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     await prefs.setString('meterValue', value);
+
+  	// Ici on map la liste des mètres de l'historique et on la stocke
+		List<double> historiqMetre = conversionHistory.map((conversion) { return conversion['Mètres'] ?? 1.0; }).toList();
+		await prefs.setString('historiqMetre', json.encode(historiqMetre));
   }
   
 
@@ -104,6 +125,15 @@ class ConversionTabState extends State<ConversionTab>/* with AutomaticKeepAliveC
                 });
               },
               child: Text('Convertir et Ajouter à l\'Historique'),
+            ),
+						SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: () {
+                setState(() {
+                  deleteConversionHistory();
+                });
+              },
+              child: Text('Supprimer l\'Historique'),
             ),
             SizedBox(height: 20),
             Text(
@@ -148,7 +178,12 @@ class ConversionTabState extends State<ConversionTab>/* with AutomaticKeepAliveC
       conversion.addAll(conversionUnits.map((unit, factor) => MapEntry(unit, meterValue * factor)));
       conversionHistory.add(conversion);
     }
+		_saveMeterValue(meterValue?.toStringAsFixed(2) ?? '1.0');
   }
+
+	void deleteConversionHistory() {
+		conversionHistory.clear();
+	}
 
 
  // @override
