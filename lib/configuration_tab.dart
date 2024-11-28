@@ -26,7 +26,6 @@ class _ConfigurationTabState extends State<ConfigurationTab> /*with AutomaticKee
   void initState() {
     super.initState();
     _loadUserLasermetre();
-
   }
 
 
