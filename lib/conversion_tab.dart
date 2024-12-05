@@ -60,11 +60,10 @@ class ConversionTabState extends State<ConversionTab>/* with AutomaticKeepAliveC
 					conversionHistory = [];
 					print(historiqMetre);
           historiqMetre.forEach( (metre) {
-													conversion.addAll(conversionUnits.map((unit, factor) => MapEntry(unit, metre * factor)));
-													
-													conversionHistory.add(Map.from(conversion)); // Map.from( pour forcer le clone, sinon on copie le pointeur, et donc on a n fois le dernier...
-													print(metre);print(conversion);print(conversionHistory);
-													});
+								conversion.addAll(conversionUnits.map((unit, factor) => MapEntry(unit, metre * factor)));
+								conversionHistory.add(Map.from(conversion)); // Map.from( pour forcer le clone, sinon on copie le pointeur, et donc on a n fois le dernier...
+								print(metre);print(conversion);print(conversionHistory);
+						});
 							print("conversionHistory:");
 							print( conversionHistory);
 					});//end state

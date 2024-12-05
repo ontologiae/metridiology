@@ -1,7 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:geolocator/geolocator.dart';
 import 'dart:io';
+import 'dart:convert';
+import 'package:archive/archive.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:http/http.dart' as http;
+import 'package:http_parser/http_parser.dart';
+
 
 class PhotoCaptureTab extends StatefulWidget {
   @override
@@ -61,6 +68,8 @@ class _PhotoCaptureTabState extends State<PhotoCaptureTab> {
     // Si les permissions sont accordées, obtenez la position.
     await _getCurrentPosition();
   }
+
+
 
   Future<void> _getCurrentPosition() async {
     try {
@@ -186,6 +195,86 @@ class _PhotoCaptureTabState extends State<PhotoCaptureTab> {
     );
   }
 
+  Future<String> _archiveData() async {
+    // Get SharedPreferences data
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    Map<String, dynamic> prefsMap = prefs.getKeys().fold({}, (map, key) {
+      map[key] = prefs.get(key);
+      return map;
+    });
+
+			//sufix des fichier
+
+		String suffixPhoto = DateTime.now().toLocal().toString().substring(0, 16).replaceAll(RegExp(r'[-: ]'), '');
+    String prefsJson = json.encode(prefsMap);
+
+    // Get the temporary directory
+    final tempDir = await getTemporaryDirectory();
+		final username =  (prefs.getString('userName') ?? '').replaceAll(RegExp(r'[\s\W]'), '_');
+    
+    // Create a tar file in the temporary directory
+    final tarFile = File('${tempDir.path}/mesure_archive_${suffixPhoto}_${username}.tar');
+
+    // Create a tar encoder
+    final encoder = TarEncoder();
+    final tarStream = OutputStream();
+    encoder.start(tarStream);
+
+		//TODO : aller chercher le username dans les prefs
+
+    // Add JSON data as a file
+    encoder.add(ArchiveFile('prefs.json', prefsJson.length, utf8.encode(prefsJson)));
+
+	    // Add photos if available
+    if (doorPhoto != null) {
+      final doorPhotoBytes = doorPhoto!.readAsBytesSync();
+      encoder.add(ArchiveFile('door_photo_${suffixPhoto}_${username}.jpg', doorPhotoBytes.length, doorPhotoBytes));
+    }
+    if (lasermeterPhoto != null) {
+      final lasermeterPhotoBytes = lasermeterPhoto!.readAsBytesSync();
+      encoder.add(ArchiveFile('lasermeter_photo_${suffixPhoto}.jpg', lasermeterPhotoBytes.length, lasermeterPhotoBytes));
+    }
+
+    // Complete the tar encoding process
+    encoder.finish();
+    tarFile.writeAsBytesSync(tarStream.getBytes());
+
+    print('Archive created at: ${tarFile.path}');
+		return tarFile.path;
+  }
+
+
+
+ Future<void> uploadFile() async {
+  final String tarFilePath = await _archiveData();
+   File file = File(tarFilePath);
+   if (!file.existsSync()) {
+     print('Erreur : Le fichier n\'existe pas.');
+     return;
+   }
+	print('Taille du fichier : ${file.lengthSync()}');
+
+  //final uri = Uri.parse('http://192.168.1.45:8080');
+	final uri = Uri.parse('http://metrologie.greensoftware.solutions/upload.php');
+
+  var request = http.MultipartRequest('POST', uri)
+    ..files.add(await http.MultipartFile.fromPath(
+      'file', tarFilePath,
+			 filename: tarFilePath,
+      contentType: MediaType('application', 'x-tar'),
+    ));
+
+  var response = await request.send();
+
+  if (response.statusCode == 200) {
+    print('Upload successful');
+  } else {
+    print('Upload failed with status: ${response.statusCode}');
+  }
+}
+
+
+
   Future<void> _archiveAndSendData() async {
     if (doorPhoto == null || lasermeterPhoto == null || currentPosition == null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -193,6 +282,23 @@ class _PhotoCaptureTabState extends State<PhotoCaptureTab> {
       );
       return;
     }
+		SharedPreferences prefs = await SharedPreferences.getInstance();
+	  String? histoMetreJson = prefs.getString('historiqMetre');
+	  print("_loadConversionUnits:"+(histoMetreJson ?? '{}'));
+		if (histoMetreJson != null) {
+		  setState(() {
+				  List<double> historiqMetre =  List<double>.from(json.decode(histoMetreJson));
+					if (enteredMeasurement > 0)
+						historiqMetre.add(enteredMeasurement);
+						prefs.setString('curMeasuredDistance', enteredMeasurement.toStringAsFixed(2) ?? '0');
+						prefs.setString('curMeasurementType', measurementType);
+						prefs.setString('curLat', currentPosition!.latitude.toStringAsFixed(2) ?? '0'  );
+						prefs.setString('curLon', currentPosition!.longitude.toStringAsFixed(2) ?? '0' );
+						prefs.setString('historiqMetre', json.encode(historiqMetre));
+					});//end state
+		}
+
+
 
     // Archive and send logic here.
     print('Nom de l\'utilisateur: [Nom]');
@@ -202,5 +308,6 @@ class _PhotoCaptureTabState extends State<PhotoCaptureTab> {
     print('Type de mesure: $measurementType');
     print('Coordonnées GPS: ${currentPosition!.latitude}, ${currentPosition!.longitude}');
     print('Description: $description');
+		uploadFile();
   }
 }
